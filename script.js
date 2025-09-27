@@ -1,18 +1,25 @@
 import {wordList} from "./word.js";
+import {keycaps} from "./keycaps.js";
+import {GIF} from "./gif_reader.js";
 // Get canvas and context
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
-let activeScene = 'main';
+let activeScene = 'title';
 
 const textWindow = 32;
 
 let text = "the quick brown fox jumps over the lazy dog";
 let typedText = "";
-let lastTyped = "O";
+let lastTyped = "_";
 let message = "Remap keys with `! It is on the top left, under the <ESC> key.";
 
 // Assume canvas, ctx, text, and typedText are already defined
 let frame = 0;
+let frameEffective = 0;
+
+let startTime = Date.now();
+let endTime = Date.now();
+
 let fps = 0;
 let lastTime = performance.now();
 // keep the last 50 fps
@@ -22,6 +29,7 @@ let time_counter = 0;
 let end_counter = 0;
 let characters = 0;
 let counting = false;
+let lives = 3;
 
 let keyMapper = {};
 // for each letter in the alphabet, map it to itself
@@ -50,14 +58,21 @@ backgroundImage.src = 'assets/work/background.png';
 const hudImage = new Image();
 hudImage.src = 'assets/work/hud.png';
 
+const gif = new GIF();
+gif.load('assets/work/pawn-shapeshift.gif');
+
 function renderMainScene() {
     if (frame % 10 === 0 && frame !== 0 && counting) {
         text += " " + randomWord();
     }
 
     frame++;
+    frameEffective++;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.drawImage(backgroundImage, 0, 0, canvas.width, canvas.height);
+    if (!gif.loading) {
+        ctx.drawImage(gif.frames[Math.floor(frame / 3) % 38].image, 640 + 640 * Math.sin(frame / 300), 260, 82, 84)
+    }
     ctx.drawImage(hudImage, 0, 0, canvas.width, canvas.height);
 
     if (counting) {
@@ -69,7 +84,22 @@ function renderMainScene() {
     // Draw frame counter
     ctx.font = '24px Arial';
     ctx.fillStyle = 'black';
-    ctx.fillText(`Frame: ${frame}, fps: ${fps}, average: ${average_fps}, wpm: ${wpm}`, 20, 40);
+    ctx.fillText(`frame: ${frame}, fps: ${fps}, average: ${average_fps}, wpm: ${wpm}`, 20, 40);
+
+    ctx.font = '40px Wendy';
+    ctx.fillStyle = '#DBD7CF';
+    for (const kc of keycaps) {
+        let text_to_render = keyMapper[kc.text.toLowerCase()] === 'unbound' ? '' : keyMapper[kc.text.toLowerCase()];
+        // if the letter is ont in the key mapper, use the kc
+        if (text_to_render === undefined) text_to_render = kc.text;
+        if (text_to_render === ' ') text_to_render = "_";
+
+        if (remapping && remapKey === kc.text.toLowerCase()) {
+            ctx.fillStyle = 'yellow';
+        }
+        ctx.fillText(text_to_render, kc.x, kc.y);
+        ctx.fillStyle = '#DBD7CF';
+    }
 
     // Draw text with color coding
     ctx.font = '50px Wendy';
@@ -87,11 +117,11 @@ function renderMainScene() {
         ctx.fillText(text[i], x, y);
         x += ctx.measureText(text[i]).width;
     }
-    ctx.fillStyle = 'white';
+    ctx.fillStyle = '#DBD7CF';
     ctx.font = '120px Wendy';
     ctx.fillText(lastTyped, 246 + 42, 136 + 90);
 
-    if (counting) health -= Math.floor(frame / 1000) + Math.max(0, Math.round((50 - wpm) * 0.05));
+    if (counting) health -= Math.floor(frameEffective / 1000) + Math.max(0, Math.round((50 - wpm) * 0.05));
     if (wpm > 100) health += Math.max(0, Math.round((wpm - 100) * 0.05));
     if (health < 0) {
         health = 700;
@@ -102,7 +132,12 @@ function renderMainScene() {
             keyMapper[keyToRemove] = 'unbound';
             message = `You lost the "${keyToRemove}" key!`;
         }
-        frame = 0;
+        frameEffective = 0;
+        lives--;
+        if (lives === 0) {
+            activeScene = "lost";
+            endTime = Date.now();
+        }
     }
     if (health > max_health) health = max_health;
 
@@ -116,8 +151,19 @@ function renderMainScene() {
     ctx.fillStyle = 'black';
     ctx.font = '32px Wendy';
     ctx.fillText(message, 246, 130);
-}
 
+
+    ctx.fillStyle = '#DBD7CF';
+    if (!counting) {
+        ctx.fillStyle = 'gray';
+    }
+    ctx.font = '60px Wendy';
+    const elapsed = Date.now() - startTime;
+    const minutes = Math.floor(elapsed / 60000);
+    const seconds = Math.floor((elapsed % 60000) / 1000);
+    const fmtTime = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    ctx.fillText(fmtTime, 255, 365);
+}
 function renderTitleScene() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.font = '48px Wendy';
@@ -128,6 +174,18 @@ function renderTitleScene() {
     ctx.strokeStyle = 'black';
     ctx.strokeRect(canvas.width / 2 - 100, canvas.height / 2, 200, 50);
     ctx.fillText("start", canvas.width / 2 - 40, canvas.height / 2 + 40);
+}
+
+function renderLoseScene() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.font = '48px Wendy';
+    ctx.fillStyle = 'black';
+    ctx.fillText('you lost buddy', canvas.width / 2 - 150, canvas.height / 2 - 50);
+    const elapsed = endTime - startTime;
+    const minutes = Math.floor(elapsed / 60000);
+    const seconds = Math.floor((elapsed % 60000) / 1000);
+    const fmtTime = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    ctx.fillText(`you lasted ${fmtTime}`, canvas.width / 2 - 150, canvas.height / 2 + 50);
 }
 
 function render() {
@@ -143,6 +201,8 @@ function render() {
         renderMainScene();
     } else if (activeScene === 'title') {
         renderTitleScene();
+    } else if (activeScene === "lost") {
+        renderLoseScene();
     }
 
     requestAnimationFrame(render);
@@ -195,6 +255,13 @@ function onKey(e) {
         if (remapping) {
             if (remapKey === null) {
                 remapKey = e.key.toLowerCase();
+                // check if the key is already unbound
+                if (keyMapper[remapKey] === 'unbound') {
+                    message = `<${remapKey}> is not allowed!`;
+                    remapKey = null;
+                    remapping = false;
+                    return;
+                }
                 message = `Remapping <${remapKey}> to <>`;
             } else {
                 keyMapper[remapKey] = e.key.toLowerCase();
@@ -212,7 +279,8 @@ function onKey(e) {
                 end_counter = performance.now() + 1;
                 characters = 0;
                 counting = true;
-                frame = 0;
+                frameEffective = 0;
+                startTime = Date.now();
             }
             handleAppend(keyMapper[e.key.toLowerCase()]);
         }
@@ -230,6 +298,7 @@ function onClick(e) {
             activeScene = 'main';
             typedText = "";
             frame = 0;
+            frameEffective = 0;
             characters = 0;
             counting = false;
         }
