@@ -34,6 +34,9 @@ keyMapper[' '] = ' ';
 let health = 700;
 let max_health = 1000;
 
+let remapping = false;
+let remapKey = null;
+
 function randomWord() {
     return wordList[Math.floor(Math.random() * wordList.length)];
 }
@@ -53,6 +56,9 @@ function bbCheck(x, y, button) {
         y >= button.y && y <= button.y + button.height);
 }
 
+const img = new Image();
+img.src = 'assets/images/background.png';
+
 function renderMainScene() {
     if (frame % 10 === 0 && frame !== 0 && counting) {
         text += " " + randomWord();
@@ -60,6 +66,8 @@ function renderMainScene() {
 
     frame++;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
     if (counting) {
         end_counter = performance.now();
     }
@@ -88,8 +96,8 @@ function renderMainScene() {
         x += ctx.measureText(text[i]).width;
     }
 
-    if (counting) health -= 1 + Math.floor(frame / 1000) + Math.max(0, Math.round((50 - wpm) * 0.05));
-    if (wpm > 100) health += Math.max(0, Math.round((wpm - 100) * 0.05 * (1 / Math.ceil(frame / 100))));
+    if (counting) health -= Math.floor(frame / 1000) + Math.max(0, Math.round((50 - wpm) * 0.05));
+    if (wpm > 100) health += Math.max(0, Math.round((wpm - 100) * 0.05));
     if (health < 0) {
         health = 700;
         //unmap a random key
@@ -158,7 +166,45 @@ function onKey(e) {
     if (activeScene !== 'main') {
         return;
     }
+    // handle arrow keys and allow remapping
+    if (e.key === "ArrowLeft" || e.key === "ArrowRight" || e.key === "ArrowUp" || e.key === "ArrowDown") {
+        if (remapping) {
+            if (remapKey === null) {
+                remapKey = e.key.toLowerCase();
+                message = `Remapping <${remapKey}> to <>`;
+            } else {
+                keyMapper[remapKey] = e.key.toLowerCase();
+                message = `Remapped <${remapKey}> to <${e.key.toLowerCase()}>`;
+            }
+        }
+        else if (typedText.length < text.length) {
+            handleAppend(keyMapper[e.key.toLowerCase()]);
+        }
+        return;
+    }
     if (e.key.length === 1) {
+        if (e.key === "`")  {
+            remapping = !remapping;
+            remapKey = null;
+            if (remapping) {
+                message = "Remapping <>";
+            } else {
+                message = "";
+            }
+            return;
+        }
+        if (remapping) {
+            if (remapKey === null) {
+                remapKey = e.key.toLowerCase();
+                message = `Remapping <${remapKey}> to <>`;
+            } else {
+                keyMapper[remapKey] = e.key.toLowerCase();
+                message = `Remapped <${remapKey}> to <${e.key.toLowerCase()}>`;
+
+                remapKey = null;
+                remapping = false;
+            }
+        }
         if (typedText.length < text.length) {
             if (typedText.length === 0) {
                 time_counter = performance.now();
@@ -188,21 +234,12 @@ function onClick(e) {
         }
     } else if (activeScene === 'main') {
         if (bbCheck(x, y, buttons.remap)) {
-            const key = prompt("Enter the key you want to remap:");
-            if (key && key.length === 1) {
-                if (keyMapper[key.toLowerCase()] === 'unbound') {
-                    alert(`The key "${key}" is unbound and cannot be remapped.`);
-                    return;
-                }
-                const mappedKey = prompt(`Enter the new key for "${key}":`);
-                if (mappedKey && mappedKey.length === 1) {
-                    keyMapper[key.toLowerCase()] = mappedKey.toLowerCase();
-                    message = `Remapped "${key}" to "${mappedKey}"`;
-                } else {
-                    alert("Invalid key for mapping.");
-                }
+            remapping = !remapping;
+            remapKey = null;
+            if (remapping) {
+                message = "Click a key to remap";
             } else {
-                alert("Invalid key.");
+                message = "";
             }
         }
     }
@@ -223,4 +260,4 @@ function handleAppend(mappedKey) {
 
 window.addEventListener('keydown', onKey);
 window.addEventListener('click', onClick);
-render();
+img.onload = render;
