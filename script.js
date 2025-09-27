@@ -25,6 +25,10 @@ for (let i = 0; i < 26; i++) {
 }
 keyMapper[' '] = ' ';
 
+
+let health = 700;
+let max_health = 1000;
+
 function render() {
     const now = performance.now();
     fps = Math.round(1000 / (now - lastTime));
@@ -40,7 +44,8 @@ function render() {
         end_counter = performance.now();
     }
     const average_fps = Math.round(last_fps_counts.reduce((a, b) => a + b, 0) / last_fps_counts.length);
-    const wpm = Math.round((characters / 5) / ((end_counter - time_counter) / 60000));
+    let wpm = Math.round((characters / 5) / ((end_counter - time_counter) / 60000));
+    if (isNaN(wpm)) wpm = 100;
     // Draw frame counter
     ctx.font = '24px Arial';
     ctx.fillStyle = 'black';
@@ -58,6 +63,21 @@ function render() {
         ctx.fillText(text[i], x, y);
         x += ctx.measureText(text[i]).width;
     }
+
+    if (counting) health -= 1 + Math.round((100 - wpm) * 0.05);
+    if (wpm > 100) health += Math.round((wpm - 100) * 0.05);
+    if (health < 0) health = 0;
+    if (health > max_health) health = max_health;
+
+    let healthWidth = (health / max_health) * 300;
+    ctx.fillStyle = 'grey';
+    ctx.fillRect(20, 150, 300, 30);
+    ctx.fillStyle = 'lime';
+    ctx.fillRect(20, 150, healthWidth, 30);
+    ctx.strokeStyle = 'black';
+    ctx.strokeRect(20, 150, 300, 30);
+    ctx.fillStyle = 'black';
+    ctx.fillText(`Health: ${health} / ${max_health}`, 25, 172);
 
     requestAnimationFrame(render);
 }
