@@ -38,6 +38,21 @@ function randomWord() {
     return wordList[Math.floor(Math.random() * wordList.length)];
 }
 
+let buttons = {
+    remap: {
+        x: 20,
+        y: 250,
+        width: 150,
+        height: 40,
+        text: 'Remap Key'
+    }
+};
+
+function bbCheck(x, y, button) {
+    return (x >= button.x && x <= button.x + button.width &&
+        y >= button.y && y <= button.y + button.height);
+}
+
 function renderMainScene() {
     if (frame % 10 === 0 && frame !== 0 && counting) {
         text += " " + randomWord();
@@ -98,8 +113,15 @@ function renderMainScene() {
     ctx.fillStyle = 'black';
     ctx.fillText(`Health: ${health} / ${max_health}`, 25, 172);
 
+    // Draw message
     ctx.fillStyle = 'black';
     ctx.fillText(message, 20, 220);
+
+    // Draw remap button
+    const button = buttons.remap;
+    ctx.strokeStyle = 'black';
+    ctx.strokeRect(button.x, button.y, button.width, button.height);
+    ctx.fillText(button.text, button.x + 10, button.y + 30);
 }
 
 function renderTitleScene() {
@@ -151,22 +173,40 @@ function onKey(e) {
 }
 
 function onClick(e) {
-    if (activeScene !== 'title') {
-        return;
-    }
     const rect = canvas.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
-
-    // Check if click is within button bounds
-    if (x >= canvas.width / 2 - 100 && x <= canvas.width / 2 + 100 &&
-        y >= canvas.height / 2 && y <= canvas.height / 2 + 50) {
-        activeScene = 'main';
-        typedText = "";
-        frame = 0;
-        characters = 0;
-        counting = false;
+    if (activeScene === 'title') {
+        // Check if click is within button bounds
+        if (x >= canvas.width / 2 - 100 && x <= canvas.width / 2 + 100 &&
+            y >= canvas.height / 2 && y <= canvas.height / 2 + 50) {
+            activeScene = 'main';
+            typedText = "";
+            frame = 0;
+            characters = 0;
+            counting = false;
+        }
+    } else if (activeScene === 'main') {
+        if (bbCheck(x, y, buttons.remap)) {
+            const key = prompt("Enter the key you want to remap:");
+            if (key && key.length === 1) {
+                if (keyMapper[key.toLowerCase()] === 'unbound') {
+                    alert(`The key "${key}" is unbound and cannot be remapped.`);
+                    return;
+                }
+                const mappedKey = prompt(`Enter the new key for "${key}":`);
+                if (mappedKey && mappedKey.length === 1) {
+                    keyMapper[key.toLowerCase()] = mappedKey.toLowerCase();
+                    message = `Remapped "${key}" to "${mappedKey}"`;
+                } else {
+                    alert("Invalid key for mapping.");
+                }
+            } else {
+                alert("Invalid key.");
+            }
+        }
     }
+
 }
 
 function handleAppend(mappedKey) {
