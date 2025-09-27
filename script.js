@@ -12,6 +12,11 @@ let lastTime = performance.now();
 // keep the last 50 fps
 let last_fps_counts = [];
 
+let time_counter = 0;
+let end_counter = 0;
+let characters = 0;
+let counting = false;
+
 function render() {
     const now = performance.now();
     fps = Math.round(1000 / (now - lastTime));
@@ -23,11 +28,15 @@ function render() {
 
     frame++;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-
+    if (counting) {
+        end_counter = performance.now();
+    }
+    const average_fps = Math.round(last_fps_counts.reduce((a, b) => a + b, 0) / last_fps_counts.length);
+    const wpm = Math.round((characters / 5) / ((end_counter - time_counter) / 60000));
     // Draw frame counter
     ctx.font = '24px Arial';
     ctx.fillStyle = 'black';
-    ctx.fillText(`Frame: ${frame}, fps: ${fps}, average: ${last_fps_counts.values().}`, 20, 40);
+    ctx.fillText(`Frame: ${frame}, fps: ${fps}, average: ${average_fps}, wpm: ${wpm}`, 20, 40);
 
     // Draw text with color coding
     ctx.font = '32px Wendy';
@@ -46,11 +55,22 @@ function render() {
 }
 
 function onKey(e) {
+    if (text.length === typedText.length) {
+        counting = false;
+        return;
+    }
     if (e.key === 'Backspace') {
         typedText = typedText.slice(0, -1);
     } else if (e.key.length === 1) {
         if (typedText.length < text.length) {
+            if (typedText.length === 0) {
+                time_counter = performance.now();
+                end_counter = performance.now() + 1;
+                characters = 0;
+                counting = true;
+            }
             typedText += e.key;
+            characters++;
         }
     }
 }
