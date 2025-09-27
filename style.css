@@ -1,0 +1,17 @@
+@font-face {
+    font-family: 'Wendy';
+    src: url('wendy.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+}
+
+/* centered horizontally and vertically*/
+canvas {
+    display: block;
+    margin: auto;
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+}
