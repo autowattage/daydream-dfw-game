@@ -1,8 +1,11 @@
+import {wordList} from "./word.js";
 // Get canvas and context
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
 
-const text = "the quick brown fox jumps over the lazy dog";
+const textWindow = 60;
+
+let text = "the quick brown fox jumps over the lazy dog";
 let typedText = "";
 
 // Assume canvas, ctx, text, and typedText are already defined
@@ -29,6 +32,10 @@ keyMapper[' '] = ' ';
 let health = 700;
 let max_health = 1000;
 
+function randomWord() {
+    return wordList[Math.floor(Math.random() * wordList.length)];
+}
+
 function render() {
     const now = performance.now();
     fps = Math.round(1000 / (now - lastTime));
@@ -37,6 +44,11 @@ function render() {
         last_fps_counts.shift();
     }
     lastTime = now;
+
+    // add a new word every 100 frames
+    if (frame % 10 === 0 && frame !== 0 && counting) {
+        text += " " + randomWord();
+    }
 
     frame++;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -54,7 +66,11 @@ function render() {
     // Draw text with color coding
     ctx.font = '32px Wendy';
     let x = 20, y = 100;
-    for (let i = 0; i < text.length; i++) {
+
+    const centerIndex = Math.max(0, typedText.length - 1);
+    let windowMin = Math.max(0, centerIndex - Math.floor(textWindow / 2));
+    let windowMax = Math.min(text.length, windowMin + textWindow);
+    for (let i = windowMin; i < windowMax; i++) {
         if (i < typedText.length) {
             ctx.fillStyle = typedText[i] === text[i] ? 'green' : 'red';
         } else {
@@ -83,7 +99,7 @@ function render() {
 }
 
 function onKey(e) {
-    if (text.length === typedText.length) {
+    if (text.length === typedText.length || health <= 0) {
         counting = false;
         return;
     }
@@ -97,9 +113,17 @@ function onKey(e) {
                 characters = 0;
                 counting = true;
             }
-            typedText += keyMapper[e.key];
-            characters++;
+            handleAppend(keyMapper[e.key.toLowerCase()]);
         }
+    }
+}
+
+function handleAppend(mappedKey) {
+    if (text[typedText.length] === mappedKey) {
+        typedText += mappedKey;
+        characters++;
+    } else {
+        health -= 10;
     }
 }
 
