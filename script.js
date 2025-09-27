@@ -2,11 +2,13 @@ import {wordList} from "./word.js";
 // Get canvas and context
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
+let activeScene = 'title';
 
 const textWindow = 60;
 
 let text = "the quick brown fox jumps over the lazy dog";
 let typedText = "";
+let message = "";
 
 // Assume canvas, ctx, text, and typedText are already defined
 let frame = 0;
@@ -36,16 +38,7 @@ function randomWord() {
     return wordList[Math.floor(Math.random() * wordList.length)];
 }
 
-function render() {
-    const now = performance.now();
-    fps = Math.round(1000 / (now - lastTime));
-    last_fps_counts.push(fps);
-    if (last_fps_counts.length > 50) {
-        last_fps_counts.shift();
-    }
-    lastTime = now;
-
-    // add a new word every 100 frames
+function renderMainScene() {
     if (frame % 10 === 0 && frame !== 0 && counting) {
         text += " " + randomWord();
     }
@@ -80,9 +73,19 @@ function render() {
         x += ctx.measureText(text[i]).width;
     }
 
-    if (counting) health -= 1 + Math.round((100 - wpm) * 0.05);
-    if (wpm > 100) health += Math.round((wpm - 100) * 0.05);
-    if (health < 0) health = 0;
+    if (counting) health -= 1 + Math.floor(frame / 1000) + Math.max(0, Math.round((50 - wpm) * 0.05));
+    if (wpm > 100) health += Math.max(0, Math.round((wpm - 100) * 0.05 * (1 / Math.ceil(frame / 100))));
+    if (health < 0) {
+        health = 700;
+        //unmap a random key
+        const keys = Object.keys(keyMapper);
+        if (keys.length > 1) {
+            const keyToRemove = keys[Math.floor(Math.random() * keys.length)];
+            keyMapper[keyToRemove] = 'unbound';
+            message = `You lost the "${keyToRemove}" key!`;
+        }
+        frame = 0;
+    }
     if (health > max_health) health = max_health;
 
     let healthWidth = (health / max_health) * 300;
@@ -95,30 +98,81 @@ function render() {
     ctx.fillStyle = 'black';
     ctx.fillText(`Health: ${health} / ${max_health}`, 25, 172);
 
+    ctx.fillStyle = 'black';
+    ctx.fillText(message, 20, 220);
+}
+
+function renderTitleScene() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.font = '48px Wendy';
+    ctx.fillStyle = 'black';
+    ctx.fillText('office click clack', canvas.width / 2 - 150, canvas.height / 2 - 50);
+
+    // button
+    ctx.strokeStyle = 'black';
+    ctx.strokeRect(canvas.width / 2 - 100, canvas.height / 2, 200, 50);
+    ctx.fillText("start", canvas.width / 2 - 40, canvas.height / 2 + 40);
+}
+
+function render() {
+    const now = performance.now();
+    fps = Math.round(1000 / (now - lastTime));
+    last_fps_counts.push(fps);
+    if (last_fps_counts.length > 50) {
+        last_fps_counts.shift();
+    }
+    lastTime = now;
+
+    if (activeScene === 'main') {
+        renderMainScene();
+    } else if (activeScene === 'title') {
+        renderTitleScene();
+    }
+
     requestAnimationFrame(render);
 }
 
 function onKey(e) {
-    if (text.length === typedText.length || health <= 0) {
-        counting = false;
+    if (activeScene !== 'main') {
         return;
     }
-    if (e.key === 'Backspace') {
-        typedText = typedText.slice(0, -1);
-    } else if (e.key.length === 1) {
+    if (e.key.length === 1) {
         if (typedText.length < text.length) {
             if (typedText.length === 0) {
                 time_counter = performance.now();
                 end_counter = performance.now() + 1;
                 characters = 0;
                 counting = true;
+                frame = 0;
             }
             handleAppend(keyMapper[e.key.toLowerCase()]);
         }
     }
 }
 
+function onClick(e) {
+    if (activeScene !== 'title') {
+        return;
+    }
+    const rect = canvas.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+
+    // Check if click is within button bounds
+    if (x >= canvas.width / 2 - 100 && x <= canvas.width / 2 + 100 &&
+        y >= canvas.height / 2 && y <= canvas.height / 2 + 50) {
+        activeScene = 'main';
+        typedText = "";
+        frame = 0;
+        characters = 0;
+        counting = false;
+    }
+}
+
 function handleAppend(mappedKey) {
+    if (mappedKey === 'unbound') {
+        return;
+    }
     if (text[typedText.length] === mappedKey) {
         typedText += mappedKey;
         characters++;
@@ -128,4 +182,5 @@ function handleAppend(mappedKey) {
 }
 
 window.addEventListener('keydown', onKey);
+window.addEventListener('click', onClick);
 render();
