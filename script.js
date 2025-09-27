@@ -17,6 +17,14 @@ let end_counter = 0;
 let characters = 0;
 let counting = false;
 
+let keyMapper = {};
+// for each letter in the alphabet, map it to itself
+for (let i = 0; i < 26; i++) {
+    const letter = String.fromCharCode(97 + i);
+    keyMapper[letter] = letter;
+}
+keyMapper[' '] = ' ';
+
 function render() {
     const now = performance.now();
     fps = Math.round(1000 / (now - lastTime));
@@ -69,7 +77,7 @@ function onKey(e) {
                 characters = 0;
                 counting = true;
             }
-            typedText += e.key;
+            typedText += keyMapper[e.key];
             characters++;
         }
     }
