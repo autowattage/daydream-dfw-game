@@ -4,7 +4,7 @@ import {GIF} from "./gif_reader.js";
 // Get canvas and context
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
-let activeScene = 'main';
+let activeScene = 'lost';
 
 const textWindow = 32;
 
@@ -65,6 +65,9 @@ emptyHeartImage.src = 'assets/work/heart-empty.png';
 
 const gif = new GIF();
 gif.load('assets/work/pawn-shapeshift.gif');
+
+const lose_gif = new GIF();
+lose_gif.load('assets/work/stamp.gif');
 
 function renderMainScene() {
     if (frame % 10 === 0 && frame !== 0 && counting) {
@@ -156,6 +159,7 @@ function renderMainScene() {
         if (lives === 0) {
             activeScene = "lost";
             endTime = Date.now();
+            frame = 0;
         }
     }
     if (health > max_health) health = max_health;
@@ -199,15 +203,29 @@ function renderTitleScene() {
 }
 
 function renderLoseScene() {
+    frame++;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.font = '48px Wendy';
+    // black background
     ctx.fillStyle = 'black';
-    ctx.fillText('you lost buddy', canvas.width / 2 - 150, canvas.height / 2 - 50);
-    const elapsed = endTime - startTime;
-    const minutes = Math.floor(elapsed / 60000);
-    const seconds = Math.floor((elapsed % 60000) / 1000);
-    const fmtTime = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-    ctx.fillText(`you lasted ${fmtTime}`, canvas.width / 2 - 150, canvas.height / 2 + 50);
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    ctx.font = '48px Wendy';
+    ctx.fillStyle = 'white';
+    if (lose_gif.loading) {
+        frame = 0;
+        return;
+    }
+    if (!lose_gif.loading && frame < 22 * 3) {
+        ctx.drawImage(lose_gif.frames[Math.floor(frame / 3)].image, canvas.width / 2 - 320, canvas.height / 2 - 180)
+    } else {
+        const elapsed = endTime - startTime;
+        const minutes = Math.floor(elapsed / 60000);
+        const seconds = Math.floor((elapsed % 60000) / 1000);
+        const fmtTime = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        ctx.drawImage(lose_gif.frames[lose_gif.frameCount - 1].image, canvas.width / 2 - 320, canvas.height / 2 - 180)
+        if (frame >= 22 * 3 + 10)
+            ctx.fillText(`you lasted ${fmtTime}`, canvas.width / 2 - 150, canvas.height / 2 + 200);
+    }
 }
 
 function render() {

@@ -112,7 +112,7 @@ export const GIF = function () {
         st.pos++;
         bitField              = st.data[st.pos++];
         gif.disposalMethod    = (bitField & 0b11100) >> 2;
-        gif.transparencyGiven = bitField & 0b1 ? true : false; // ignoring bit two that is marked as  userInput???
+        gif.transparencyGiven = !!(bitField & 0b1); // ignoring bit two that is marked as  userInput???
         gif.delayTime         = (st.data[st.pos++]) + ((st.data[st.pos++]) << 8);
         gif.transparencyIndex = st.data[st.pos++];
         st.pos++;
@@ -147,7 +147,7 @@ export const GIF = function () {
         frame.width   = (st.data[st.pos++]) + ((st.data[st.pos++]) << 8);
         frame.height  = (st.data[st.pos++]) + ((st.data[st.pos++]) << 8);
         bitField      = st.data[st.pos++];
-        frame.localColourTableFlag = bitField & 0b10000000 ? true : false;
+        frame.localColourTableFlag = !!(bitField & 0b10000000);
         if (frame.localColourTableFlag) { frame.localColourTable = parseColourTable(1 << ((bitField & 0b111) + 1)) }
         if (pixelBufSize !== frame.width * frame.height) { // create a pixel buffer if not yet created or if current frame size is different from previous
             pixelBuf     = new Uint8Array(frame.width * frame.height);
@@ -168,7 +168,7 @@ export const GIF = function () {
         frame.image.ctx    = frame.image.getContext("2d");
         ct = frame.localColourTableFlag ? frame.localColourTable : gif.globalColourTable;
         if (gif.lastFrame === null) { gif.lastFrame = frame }
-        useT = (gif.lastFrame.disposalMethod === 2 || gif.lastFrame.disposalMethod === 3) ? true : false;
+        useT = (gif.lastFrame.disposalMethod === 2 || gif.lastFrame.disposalMethod === 3);
         if (!useT) { frame.image.ctx.drawImage(gif.lastFrame.image, 0, 0, gif.width, gif.height) }
         cData = frame.image.ctx.getImageData(frame.leftPos, frame.topPos, frame.width, frame.height);
         ti  = frame.transparencyIndex;
