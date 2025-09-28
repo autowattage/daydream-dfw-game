@@ -257,7 +257,7 @@ function render() {
 }
 
 function onKey(e) {
-    if (activeScene === 'title') {
+    if (activeScene === 'title' && e.key === "Enter") {
         activeScene = 'main';
         typedText = "";
         frame = 0;
