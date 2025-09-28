@@ -231,8 +231,10 @@ function renderLoseScene() {
         const seconds = Math.floor((elapsed % 60000) / 1000);
         const fmtTime = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
         ctx.drawImage(lose_gif.frames[lose_gif.frameCount - 1].image, canvas.width / 2 - 320, canvas.height / 2 - 180)
-        if (frame >= 22 * 3 + 10)
+        if (frame >= 22 * 3 + 10) {
             ctx.fillText(`you lasted ${fmtTime}`, canvas.width / 2 - 150, canvas.height / 2 + 200);
+            ctx.fillText(`type <ENTER> to go back to the title`, canvas.width / 2 - 150, canvas.height / 2 + 250);
+        }
     }
 }
 
@@ -264,6 +266,26 @@ function onKey(e) {
         frameEffective = 0;
         characters = 0;
         counting = false;
+    }
+    if (activeScene === 'lost' && e.key === "Enter") {
+        activeScene = 'title';
+        lives = 3;
+        health = 700;
+        keyMapper = {};
+        // for each letter in the alphabet, map it to itself
+        for (let i = 0; i < 26; i++) {
+            const letter = String.fromCharCode(97 + i);
+            keyMapper[letter] = letter;
+        }
+        keyMapper[' '] = ' ';
+        text = "the quick brown fox jumps over the lazy dog";
+        typedText = "";
+        frame = 0;
+        frameEffective = 0;
+        characters = 0;
+        counting = false;
+        message = "REMAP = ~";
+        opacity = 0;
     }
     if (activeScene !== 'main') {
         return;
