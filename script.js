@@ -64,6 +64,9 @@ hudImage.src = 'assets/work/hud.png';
 const emptyHeartImage = new Image();
 emptyHeartImage.src = 'assets/work/heart-empty.png';
 
+const titlescreenImage = new Image();
+titlescreenImage.src = 'assets/work/titlescreen.png';
+
 const gif = new GIF();
 gif.load('assets/work/pawn-shapeshift.gif');
 
@@ -101,9 +104,12 @@ function renderMainScene() {
     let wpm = Math.round((characters / 5) / ((end_counter - time_counter) / 60000));
     if (isNaN(wpm)) wpm = 100;
     // Draw frame counter
-    ctx.font = '24px Arial';
+    ctx.font = '16px Arial';
     ctx.fillStyle = 'black';
-    ctx.fillText(`frame: ${frame}, fps: ${fps}, average: ${average_fps}, wpm: ${wpm}`, 20, 40);
+    if (fps < 0.85 * target_fps || fps > 1.15 * target_fps) {
+        ctx.fillStyle = 'red';
+    }
+    ctx.fillText(`fps: ${fps}/${target_fps}, ao50 fps: ${average_fps}/${target_fps}`, 5, 16);
 
     ctx.font = '40px Wendy';
     ctx.fillStyle = '#DBD7CF';
@@ -190,19 +196,20 @@ function renderMainScene() {
     const seconds = Math.floor((elapsed % 60000) / 1000);
     const fmtTime = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
     ctx.fillText(fmtTime, 255, 365);
+
+    const fmtSpd = `${wpm} WPM`;
+    ctx.font = '40px Wendy';
+    if (wpm > 100) {
+        ctx.fillStyle = '#6ABE30';
+    } else if (wpm < 50) {
+        ctx.fillStyle = '#AC3232';
+    }
+    ctx.fillText(fmtSpd, 252, 295)
 }
 function renderTitleScene() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.font = '48px Wendy';
-    ctx.fillStyle = 'black';
-    ctx.fillText('office click clack', canvas.width / 2 - 150, canvas.height / 2 - 50);
-
-    // button
-    ctx.strokeStyle = 'black';
-    ctx.strokeRect(canvas.width / 2 - 100, canvas.height / 2, 200, 50);
-    ctx.fillText("start", canvas.width / 2 - 40, canvas.height / 2 + 40);
+    ctx.drawImage(titlescreenImage, 0, 0, canvas.width, canvas.height);
 }
-
 function renderLoseScene() {
     frame++;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -250,6 +257,14 @@ function render() {
 }
 
 function onKey(e) {
+    if (activeScene === 'title') {
+        activeScene = 'main';
+        typedText = "";
+        frame = 0;
+        frameEffective = 0;
+        characters = 0;
+        counting = false;
+    }
     if (activeScene !== 'main') {
         return;
     }
@@ -327,25 +342,6 @@ function onKey(e) {
         }
     }
 }
-
-function onClick(e) {
-    const rect = canvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-    if (activeScene === 'title') {
-        // Check if click is within button bounds
-        if (x >= canvas.width / 2 - 100 && x <= canvas.width / 2 + 100 &&
-            y >= canvas.height / 2 && y <= canvas.height / 2 + 50) {
-            activeScene = 'main';
-            typedText = "";
-            frame = 0;
-            frameEffective = 0;
-            characters = 0;
-            counting = false;
-        }
-    }
-}
-
 function handleAppend(mappedKey) {
     if (mappedKey === 'unbound') {
         return;
@@ -362,8 +358,8 @@ const assetLoadFuture = Promise.all([
     new Promise((resolve) => { backgroundImage.onload = resolve; }),
     new Promise((resolve) => { hudImage.onload = resolve; }),
     new Promise((resolve) => { emptyHeartImage.onload = resolve; }),
+    new Promise((resolve) => { titlescreenImage.onload = resolve; }),
 ]);
 
 window.addEventListener('keydown', onKey);
-window.addEventListener('click', onClick);
 assetLoadFuture.then(render);
