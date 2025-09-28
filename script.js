@@ -4,7 +4,7 @@ import {GIF} from "./gif_reader.js";
 // Get canvas and context
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
-let activeScene = 'lost';
+let activeScene = 'title';
 
 const textWindow = 32;
 
