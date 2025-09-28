@@ -4,6 +4,7 @@ import {GIF} from "./gif_reader.js";
 // Get canvas and context
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
+const target_fps = 40;
 let activeScene = 'title';
 
 const textWindow = 32;
@@ -245,7 +246,7 @@ function render() {
         renderLoseScene();
     }
 
-    requestAnimationFrame(render);
+    setTimeout(render, 1000 / target_fps);
 }
 
 function onKey(e) {
