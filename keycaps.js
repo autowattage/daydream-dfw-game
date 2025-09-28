@@ -264,9 +264,9 @@ export const keycaps = [
         text: "CTL"
     },
     {
-        x: 462,
+        x: 454,
         y: 576,
-        text: "F"
+        text: "FN"
     },
     {
         x: 542,

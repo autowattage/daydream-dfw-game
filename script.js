@@ -4,14 +4,14 @@ import {GIF} from "./gif_reader.js";
 // Get canvas and context
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
-let activeScene = 'title';
+let activeScene = 'main';
 
 const textWindow = 32;
 
 let text = "the quick brown fox jumps over the lazy dog";
 let typedText = "";
 let lastTyped = "_";
-let message = "Remap keys with `! It is on the top left, under the <ESC> key.";
+let message = "REMAP = ~";
 
 // Assume canvas, ctx, text, and typedText are already defined
 let frame = 0;
@@ -30,6 +30,8 @@ let end_counter = 0;
 let characters = 0;
 let counting = false;
 let lives = 3;
+
+let opacity = 0;
 
 let keyMapper = {};
 // for each letter in the alphabet, map it to itself
@@ -58,6 +60,9 @@ backgroundImage.src = 'assets/work/background.png';
 const hudImage = new Image();
 hudImage.src = 'assets/work/hud.png';
 
+const emptyHeartImage = new Image();
+emptyHeartImage.src = 'assets/work/heart-empty.png';
+
 const gif = new GIF();
 gif.load('assets/work/pawn-shapeshift.gif');
 
@@ -65,6 +70,8 @@ function renderMainScene() {
     if (frame % 10 === 0 && frame !== 0 && counting) {
         text += " " + randomWord();
     }
+
+    opacity /= 1.05;
 
     frame++;
     frameEffective++;
@@ -74,6 +81,14 @@ function renderMainScene() {
         ctx.drawImage(gif.frames[Math.floor(frame / 3) % 38].image, 640 + 640 * Math.sin(frame / 300), 260, 82, 84)
     }
     ctx.drawImage(hudImage, 0, 0, canvas.width, canvas.height);
+    if (lives < 3)
+        ctx.drawImage(emptyHeartImage, 252, 554, 30, 30)
+    if (lives < 2)
+        ctx.drawImage(emptyHeartImage, 292, 554, 30, 30)
+
+    // draw a semitransparent rectangle
+    ctx.fillStyle = `rgba(255, 0, 0, ${opacity})`;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     if (counting) {
         end_counter = performance.now();
@@ -95,6 +110,9 @@ function renderMainScene() {
         if (text_to_render === ' ') text_to_render = "_";
 
         if (remapping && remapKey === kc.text.toLowerCase()) {
+            ctx.fillStyle = 'yellow';
+        }
+        if (kc.text.toLowerCase() === lastTyped.toLowerCase()) {
             ctx.fillStyle = 'yellow';
         }
         ctx.fillText(text_to_render, kc.x, kc.y);
@@ -130,10 +148,11 @@ function renderMainScene() {
         if (keys.length > 1) {
             const keyToRemove = keys[Math.floor(Math.random() * keys.length)];
             keyMapper[keyToRemove] = 'unbound';
-            message = `You lost the "${keyToRemove}" key!`;
+            message = `You lost the "${keyToRemove === " " ? "SPACE": keyToRemove}" key!`;
         }
         frameEffective = 0;
         lives--;
+        opacity = 1;
         if (lives === 0) {
             activeScene = "lost";
             endTime = Date.now();
@@ -149,7 +168,10 @@ function renderMainScene() {
 
     // Draw message
     ctx.fillStyle = 'black';
-    ctx.font = '32px Wendy';
+    if (opacity > 0.01) {
+        ctx.fillStyle = 'red';
+    }
+    ctx.font = '40px Wendy';
     ctx.fillText(message, 246, 130);
 
 
@@ -319,7 +341,8 @@ function handleAppend(mappedKey) {
 
 const assetLoadFuture = Promise.all([
     new Promise((resolve) => { backgroundImage.onload = resolve; }),
-    new Promise((resolve) => { hudImage.onload = resolve; })
+    new Promise((resolve) => { hudImage.onload = resolve; }),
+    new Promise((resolve) => { emptyHeartImage.onload = resolve; }),
 ]);
 
 window.addEventListener('keydown', onKey);
