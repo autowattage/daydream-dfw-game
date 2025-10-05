@@ -1,12 +1,12 @@
 // noinspection DuplicatedCode
 
-import {wordList, keycaps} from "./word.js";
+import {keycaps, wordList} from "./word.js";
 import {GIF} from "./gif_reader.js";
 
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
 const target_fps = 40;
-let activeScene = 'title';
+let activeScene = 'main';
 
 ctx.imageSmoothingEnabled = false;
 
@@ -61,7 +61,27 @@ function resetGameState() {
     // remapper
     keyMapper: {},
     remapping: false,
-    remapKey: null
+    remapKey: null,
+
+    // tutorial
+    tutorial: {
+      isTutorial: true,
+      state: 0,
+      states: [
+        "Welcome to\noffice click clack :)",
+        "<-- This is Carl\nhe's an office worker.",
+        "He needs to type the text\nabove there.",
+        "He can use any letter or\nnumber. He can also use\nspecial chars like -,.= etc.",
+        "Sometimes, his boss Owen\ntakes away a key.",
+        "Carl needs to remap a key.\nType the ~ key,\nbelow <ESC>\n",
+        "Then, type the key you \nwant to remap. Try typing\nthe <Q> key.",
+        "Now, press <T>",
+        "Now, when you press <Q>,\nIt types 'T'!",
+        "You can only use keys\nOwen hasn't taken away.",
+        "You can remap go back by\nHitting ~, then <Q> twice.",
+        "Good luck and have fun!"
+      ]
+    }
   }
 
   for (let i = 0; i < 26; i++) {
@@ -95,8 +115,8 @@ function renderMainScene() {
     console.log(gameState.wpmDeque.length / 4, (Date.now() - earliest) / 60000);
   }
   const wpm = Math.round((gameState.wpmDeque.length / 4) / ((Date.now() - earliest) / 60000));
-  // remove all entries older than 10 seconds
-  while (gameState.wpmDeque.length > 0 && Date.now() - gameState.wpmDeque[0] > 10000) {
+  // remove all entries older than 30 seconds
+  while (gameState.wpmDeque.length > 0 && Date.now() - gameState.wpmDeque[0] > 30000) {
     gameState.wpmDeque.shift();
   }
   lastTime = now;
@@ -233,7 +253,34 @@ function renderMainScene() {
   if (!gameState.active) {
     ctx.fillStyle = 'gray';
   }
-  ctx.fillText(fmtSpd, 252, 295)
+  ctx.fillText(fmtSpd, 252, 295);
+
+  if (gameState.tutorial.isTutorial) {
+    ctx.fillStyle = '#222034';
+    ctx.beginPath();
+    ctx.roundRect(640, 226, 300, 136, 20);
+    ctx.fill();
+
+    ctx.fillStyle = 'white';
+    ctx.font = '30px Wendy';
+
+    function drawWithLineBreaks(text, x, y) {
+      const parts = text.split('\n');
+      for (const part of parts) {
+        ctx.fillText(part, x, y);
+
+        const metrics = ctx.measureText(part);
+        y += metrics.fontBoundingBoxAscent + metrics.fontBoundingBoxDescent;
+      }
+    }
+
+    drawWithLineBreaks(gameState.tutorial.states[gameState.tutorial.state], 650, 260);
+
+    if (gameState.tutorial.state === 0) {
+      ctx.fillText("<ESC> to skip", 650, 328);
+    }
+    ctx.fillText("<ENT> to continue", 650, 350)
+  }
 }
 
 function renderTitleScene() {
@@ -294,6 +341,15 @@ function onKey(e) {
   }
   if (activeScene === 'lost' && e.key === "Enter") {
     activeScene = 'title';
+  }
+  if (e.key === "Enter" && gameState.tutorial.isTutorial) {
+    gameState.tutorial.state++;
+    if (gameState.tutorial.state >= gameState.tutorial.states.length) {
+      gameState.tutorial.isTutorial = false;
+    }
+  }
+  if (e.key === "Escape" && gameState.tutorial.isTutorial && gameState.tutorial.state === 0) {
+    gameState.tutorial.isTutorial = false;
   }
   if (e.key.length === 1) {
     if (e.key === "`") {
