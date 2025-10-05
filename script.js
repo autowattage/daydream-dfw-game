@@ -1,5 +1,4 @@
-import {wordList} from "./word.js";
-import {keycaps} from "./keycaps.js";
+import {wordList, keycaps} from "./word.js";
 import {GIF} from "./gif_reader.js";
 // Get canvas and context
 const canvas = document.getElementById('canvas');
