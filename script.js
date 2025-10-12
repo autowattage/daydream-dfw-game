@@ -6,7 +6,9 @@ import {GIF} from "./gif_reader.js";
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
 const target_fps = 40;
-let activeScene = 'main';
+let activeScene = 'title';
+let doAudio = false;
+let audioFadeProgress = 0;
 
 ctx.imageSmoothingEnabled = false;
 
@@ -28,6 +30,14 @@ gif.load('assets/work/pawn-shapeshift.gif');
 
 const lose_gif = new GIF();
 lose_gif.load('assets/work/stamp.gif');
+
+const titlescreen_sound = new Audio('assets/work/titlescreen.wav');
+titlescreen_sound.loop = true;
+
+const carls_theme = new Audio('assets/work/carls-theme.wav');
+
+const easter_egg = new Audio('assets/work/driving-in-my-car.wav');
+const easter_egg_chance = 0.001;
 
 const textWindow = 32;
 
@@ -56,7 +66,7 @@ function resetGameState() {
     text: "the quick brown fox jumps over the lazy dog",
     typedText: "",
     lastTyped: "_",
-    message: "REMAP = ~",
+    message: "REMAP = ~ | <CTRL + M> = play music",
 
     // remapper
     keyMapper: {},
@@ -111,15 +121,31 @@ function renderMainScene() {
   const now = performance.now();
   const fps = Math.round(1000 / (now - lastTime));
   const earliest = gameState.wpmDeque[0] || Date.now() + 1000;
-  if (gameState.wpmDeque.length > 0) {
-    console.log(gameState.wpmDeque.length / 4, (Date.now() - earliest) / 60000);
-  }
   const wpm = Math.round((gameState.wpmDeque.length / 4) / ((Date.now() - earliest) / 60000));
   // remove all entries older than 30 seconds
   while (gameState.wpmDeque.length > 0 && Date.now() - gameState.wpmDeque[0] > 30000) {
     gameState.wpmDeque.shift();
   }
   lastTime = now;
+
+  // music player
+  if (doAudio) {
+    if (gameState.active && carls_theme.paused && easter_egg.paused) {
+      const roll = Math.random();
+      console.log(roll);
+      if (roll < easter_egg_chance) {
+        easter_egg.play();
+      } else {
+        carls_theme.play();
+      }
+    }
+    if (gameState.active && !titlescreen_sound.paused && audioFadeProgress < 1) {
+      audioFadeProgress += 0.05;
+      titlescreen_sound.volume = Math.max(0, 1 - audioFadeProgress);
+      carls_theme.volume = Math.min(1, audioFadeProgress);
+      easter_egg.volume = Math.min(1, audioFadeProgress);
+    }
+  }
 
   // background image
   ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -284,11 +310,31 @@ function renderMainScene() {
 }
 
 function renderTitleScene() {
+
+  if (doAudio && titlescreen_sound.paused) {
+    titlescreen_sound.play();
+  }
+
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   ctx.drawImage(titlescreenImage, 0, 0, canvas.width, canvas.height);
+
+  ctx.fillStyle = '#DBD7CF';
+  ctx.strokeStyle = '#222034';
+  ctx.lineWidth = 3;
+  ctx.font = '30px Wendy';
+
+  ctx.strokeText('Press <M> to enable sound!', 10, 700)
+  ctx.fillText('Press <M> to enable sound!', 10, 700);
 }
 
 function renderLoseScene() {
+  if (!carls_theme.paused) {
+    carls_theme.pause();
+  }
+  if (!titlescreen_sound.paused) {
+    titlescreen_sound.pause();
+  }
+
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   // black background
   ctx.fillStyle = 'black';
@@ -338,6 +384,10 @@ function onKey(e) {
   if (activeScene === 'title' && e.key === "Enter") {
     resetGameState();
     activeScene = 'main';
+    return;
+  }
+  if (activeScene === 'title' && e.key.toLowerCase() === 'm') {
+    doAudio = true;
   }
   if (activeScene === 'lost' && e.key === "Enter") {
     activeScene = 'title';
@@ -351,7 +401,10 @@ function onKey(e) {
   if (e.key === "Escape" && gameState.tutorial.isTutorial && gameState.tutorial.state === 0) {
     gameState.tutorial.isTutorial = false;
   }
-  if (e.key.length === 1) {
+  if (e.key.toLowerCase() === 'm' && e.ctrlKey) {
+    doAudio = !doAudio;
+  }
+  if (e.key.length === 1 && !e.ctrlKey) {
     if (e.key === "`") {
       gameState.remapping = !gameState.remapping;
       gameState.remapKey = null;
@@ -414,8 +467,10 @@ const assetLoadFuture = Promise.all([
   }),
   new Promise((resolve) => {
     titlescreenImage.onload = resolve;
-  }),
+  })
 ]);
 
 window.addEventListener('keydown', onKey);
-assetLoadFuture.then(render);
+assetLoadFuture.then(() => {
+  render();
+});
