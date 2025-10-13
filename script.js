@@ -348,7 +348,13 @@ function renderLoseScene() {
   carls_theme.volume = 1;
   easter_egg.volume = 1;
   sudden_death.volume = 1;
-  sudden_death.volume = 1;
+  titlescreen_sound.volume = 1;
+
+  // seek all back to start
+  carls_theme.currentTime = 0;
+  easter_egg.currentTime = 0;
+  sudden_death.currentTime = 0;
+  titlescreen_sound.currentTime = 0;
 
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   // black background
