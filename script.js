@@ -35,6 +35,7 @@ const titlescreen_sound = new Audio('assets/work/titlescreen.wav');
 titlescreen_sound.loop = true;
 
 const carls_theme = new Audio('assets/work/carls-theme.wav');
+const sudden_death = new Audio('assets/work/sudden-death.wav');
 
 const easter_egg = new Audio('assets/work/driving-in-my-car.wav');
 const easter_egg_chance = 0.001;
@@ -130,13 +131,15 @@ function renderMainScene() {
 
   // music player
   if (doAudio) {
-    if (gameState.active && carls_theme.paused && easter_egg.paused) {
+    if (gameState.active && carls_theme.paused && sudden_death.paused && easter_egg.paused) {
       const roll = Math.random();
       console.log(roll);
       if (roll < easter_egg_chance) {
         easter_egg.play();
-      } else {
+      } else if (gameState.lives > 2) {
         carls_theme.play();
+      } else {
+        sudden_death.play();
       }
     }
     if (gameState.active && !titlescreen_sound.paused && audioFadeProgress < 1) {
@@ -330,6 +333,12 @@ function renderTitleScene() {
 function renderLoseScene() {
   if (!carls_theme.paused) {
     carls_theme.pause();
+  }
+  if (!easter_egg.paused) {
+    easter_egg.pause();
+  }
+  if (!sudden_death.paused) {
+    sudden_death.pause();
   }
   if (!titlescreen_sound.paused) {
     titlescreen_sound.pause();
