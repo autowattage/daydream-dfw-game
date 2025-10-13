@@ -344,6 +344,12 @@ function renderLoseScene() {
     titlescreen_sound.pause();
   }
 
+  // set all audio volumes to 100%
+  carls_theme.volume = 1;
+  easter_egg.volume = 1;
+  sudden_death.volume = 1;
+  sudden_death.volume = 1;
+
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   // black background
   ctx.fillStyle = 'black';
